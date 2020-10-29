@@ -62,11 +62,18 @@ class Hand(list):
   If it is only itself, it will return itself
   '''
 
-  HAND_TYPES = ['empty', 'scattered', 'one_card', 'pair', 'three_of_a_kind', 'four_of_a_kind', 'straight', 'flush', 'full_house', 'four_of_a_kind_plus_one', 'straight_flush']
+  HAND_TYPES = ['empty', 'scattered', 'one_card', 'pair', 'three_of_a_kind', 'four_of_a_kind', 'straight', 'flush', 'full_house', 'four_of_a_kind_plus_one', 'straight_flush']    
+
+  def valid_moves(self, previous_move = "*", lowest_card = None):
+    if self.__valid_moves == -1: 
+      self.__valid_moves = self.get_valid_moves(previous_move, lowest_card)
+
+    return self.__valid_moves
 
   def get_valid_moves(self, previous_move = "*", lowest_card = None):
-    print("PREV: ", end="")
+    print("PREV:", end=" ")
     print(previous_move)
+
     has_previous_move = isinstance(previous_move, Move)
     first_move = (lowest_card != None)
 
@@ -144,6 +151,10 @@ class Hand(list):
 
   def size(self):
     return len(self)
+
+  def __init__(self, iterable = ()):
+    super().__init__(iterable)
+    self.__valid_moves = -1
 
   def __str__(self):
     display_hand = ""
@@ -338,12 +349,17 @@ test_hand.sort()
 print(test_hand)
 
 prev_cards = []
+prev_cards.append(Card(3, 0))
+prev_cards.append(Card(5, 1))
+prev_cards.append(Card(4, 0))
+prev_cards.append(Card(6, 0))
+prev_cards.append(Card(7, 0))
 
-for i in range(3):
-  prev_cards.append(deck.pop(random.randrange(0, len(deck))))
+# for i in range(3):
+#   prev_cards.append(deck.pop(random.randrange(0, len(deck))))
 
 prev_move = Move(iter(prev_cards))
-valid_moves = test_hand.get_valid_moves()
+valid_moves = test_hand.valid_moves(prev_move)
 
 for move in valid_moves:
   print(move)
