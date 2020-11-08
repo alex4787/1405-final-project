@@ -4,6 +4,8 @@ import user_interface as ui
 
 @functools.total_ordering
 class Player():
+  '''Player in the game of President'''
+
   FINISHING_ROLES = ['President 👑', 'Vice-President', 'Neutral', 'Vice-Bum', 'Bum']
 
   def reset(self):
@@ -12,6 +14,8 @@ class Player():
     self.finished = False
 
   def give_cards(self, other, *cards):
+    '''Gives specified cards to other player'''
+
     for card in cards:
       if card not in self.hand:
         raise card + " Card not in hand!"
@@ -21,8 +25,9 @@ class Player():
     other.hand.extend(cards)
 
   def _get_move_parameters(self, previous_move = "*", lowest_card = None):
-    self._valid_moves = self.hand.get_valid_moves(previous_move, lowest_card)
+    '''Sets parameters to enable move selection'''
 
+    self._valid_moves = self.hand.get_valid_moves(previous_move, lowest_card)
     self._can_pass = not ((lowest_card != None) or (previous_move == "*"))
     
     try:
@@ -32,11 +37,14 @@ class Player():
     
     if self._can_pass: self._last_choice += 1
 
-
   def print_from_valid_moves(self, index):
+    '''Allows protected attribute, _valid_moves, to be printed outside of class'''
+
     print(self._valid_moves[index])
 
   def _get_move(self, move_choice):
+    '''Performs and returns move specified'''
+
     if move_choice == self._last_choice and self._can_pass:
       return "*"
     else:
@@ -50,14 +58,15 @@ class Player():
       return move
 
   def test_move(self, previous_move = "*", lowest_card = None, move_choice = 1):
+    '''Return the first available move every time'''
+
     self._get_move_parameters(previous_move, lowest_card)
     return self._get_move(move_choice)
 
   def do_move(self, previous_move = "*", lowest_card = None):
-    return self.test_move(previous_move, lowest_card)
+    '''When Player object created and not a Person or AI, defaults to using test_move() to select move'''
 
-  def tester(self):
-    self._get_move_parameters()
+    return self.test_move(previous_move, lowest_card)
 
   def __init__(self, name):
     self.hand = card.Hand()

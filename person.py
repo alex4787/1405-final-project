@@ -3,7 +3,11 @@ import user_input as user_in
 import user_interface as ui
 
 class Person(Player):
+  '''Player than is controlled by an actual person'''
+
   def choose_cards(self, number_of_cards = 1):
+    '''Allows player to choose cards from their hand and returns them'''
+
     counter = 1
 
     ui.print_moves(self, self.hand, False)
@@ -42,4 +46,6 @@ class Person(Player):
     return self._get_move(move_choice)
 
   def do_move(self, previous_move = "*", lowest_card = None):
+    '''Overrided method from parent class to allow player to manually choose which move to play'''
+
     return self.choose_move(previous_move, lowest_card)

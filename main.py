@@ -1,8 +1,7 @@
 import base_game as b
 
-b.TEST = False
-
-continue_playing = True
+b.TEST = False            # Prints extra information to console if true
+continue_playing = True   # Boolean that controls whether a new game restarts after game completes
 
 while continue_playing:
   b.setup()

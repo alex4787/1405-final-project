@@ -5,8 +5,8 @@ import functools
 class Card:
   '''
   Creates card objects that can be displayed and compared based on their:
-  - Suit (0 = Diamond, 1 = Club, 2 = Heart, 3 = Spade)
-  - Value (1 to 13, where 1 = A, 11 = J, 12 = Q, 13 = K)
+  - Value <number_value> (1 to 13, where 1 = A, 11 = J, 12 = Q, 13 = K)
+  - Suit <suit_value> (0 = Diamond, 1 = Club, 2 = Heart, 3 = Spade)
   '''
 
   # Colour constants
@@ -51,6 +51,7 @@ class Card:
       return Card(self.value, self.suit['value'] + 1)
 
   def to_hashable(self):
+    '''Returns a hashable (string) representation of the card'''
     return "C#" + str(self.value) + "#" + str(self.suit['value'])
 
   def __init__(self, number_value, suit_value):
@@ -70,6 +71,8 @@ class Card:
     return self.value < other.value or (self.value == other.value and self.suit['value'] < other.suit['value'])
 
 class BlankCard(Card):
+  '''Special card object used specifically to display the reverse side of cards.'''
+
   BLUE = '\033[37;44m'
 
   def __init__(self):
@@ -99,20 +102,12 @@ class Hand(list):
     Return None if there are no valid moves in the hand.
     '''
 
-    # print('gvm')
-
     self.sort()
-    # print("LOWEST:", end=" ")
-    # print(lowest_card)
-    # print(option)
 
     has_previous_move = isinstance(previous_move, Move)
     first_move = (lowest_card != None)
 
     if first_move: option = 'default'
-
-    # print(has_previous_move)
-    # print(first_move)
 
     if has_previous_move and self.size() < previous_move.size():
       return []
@@ -132,7 +127,6 @@ class Hand(list):
       within_range = True
       
       if has_previous_move:
-        # print("hpm")
         if isinstance(get_moves[func]['range'], list):
           within_range = get_moves[func]['range'][0] <= previous_move.size() <= get_moves[func]['range'][1]
         else:
@@ -143,16 +137,10 @@ class Hand(list):
 
       func(*get_moves[func]['args'])
 
-      # for move in all_valid_moves:
-      #   print(move)
-
-      if has_previous_move: # do return immediately with sort
+      if has_previous_move:
         return self.__get_moves_with_previous(all_valid_moves, previous_move)
 
     return_moves = []
-
-    # for move in all_valid_moves:
-    #   print(move)
 
     if first_move:
       for move_counter in range(len(all_valid_moves)):
@@ -161,13 +149,11 @@ class Hand(list):
     else:
       return_moves = all_valid_moves[:]
 
-    # for move in return_moves:
-    #   print(move)
-      
-    # print(return_moves)
     return sorted_by_hand_type(return_moves)
 
   def __get_same_sized_move(self, previous_move):
+    '''Return moves if hand is the same size as the previous move'''
+
     self_move = Move(self)
     is_move = True
     if self_move.hand_type == 'empty' or self_move.hand_type == 'scattered':
@@ -179,6 +165,8 @@ class Hand(list):
     return []
 
   def __value_frequencies(self):
+    '''Return a dictionary that represents the frequency of each card value in the hand'''
+
     self_value_frequencies = {}
 
     for card in self:  
@@ -190,6 +178,8 @@ class Hand(list):
     return self_value_frequencies
 
   def __get_one_cards(self, moves, option):
+    '''Return a list of all single card moves within the hand'''
+
     if option == 'default':
       for card in self:
         moves.append(Move([card]))
@@ -199,6 +189,8 @@ class Hand(list):
       moves.append(Move([self[0]]))
 
   def __get_two_to_four_cards(self, moves, option, value_frequencies, has_previous_move, previous_move):
+    '''Return a list of all two, three, and four card moves within the hand'''
+
     if has_previous_move:
       move_sizes = [previous_move.size()]
     else:
@@ -227,31 +219,29 @@ class Hand(list):
         moves.append(move_type_dict[move_type])
 
   def __get_five_cards(self, moves, option):
-    combinations = itertools.combinations(self, 5)
+    '''Return a list of all five-card moves within the hand'''
 
-    # print('5 cards')
-    # print(option)
+    combinations = itertools.combinations(self, 5)
 
     move_type_dict = {}
 
     for combo in combinations:
       move = Move(combo)
       if move.hand_type != 'scattered':
-        # print('gen', move)
         if option == 'default':
           moves.append(move)
         elif move.hand_type not in move_type_dict:
           move_type_dict[move.hand_type] = move
-          # print('not in', move)
         elif (option == 'highest' and move > move_type_dict[move.hand_type]) or (option == 'lowest' and move < move_type_dict[move.hand_type]):
           move_type_dict[move.hand_type] = move
-          # print('high', move)
 
     if option != 'default':
       for move_type in move_type_dict:
         moves.append(move_type_dict[move_type])
 
   def __get_moves_with_previous(self, moves, previous_move):
+    '''Return a sorted of all possible moves in the hand when a previous move is provided'''
+
     return_moves = []
 
     for move_counter in range(len(moves)):
@@ -268,6 +258,11 @@ class Hand(list):
     return len(self)
 
   def subtract(self, other, in_place = True):
+    '''
+    Return the hand after the other cards/moves/hands have been removed
+    - in_place: (True: subtracts from hand in place), (False: returns a copy of the string with cards removed)
+    '''
+
     other_cards = {}
 
     return_hand = self
@@ -292,21 +287,15 @@ class Hand(list):
       elif element.to_hashable() not in other_cards:
         other_cards[element.to_hashable()] = True
 
-    # print(other_cards)
-
     for other_card in other_cards:
       return_hand.remove(hashable_to_card(other_card))
-
-    # for card in return_hand:
-    #   print(card.to_hashable())
-    #   if card.to_hashable() in other_cards:
-    #     print(card)
-    #     return_hand.remove(card)
 
     if not in_place:
       return return_hand
 
   def to_blank_hand(self):
+    '''Return the hand, but with all cards showing their reverse'''
+
     return_hand = Hand()
 
     return_hand.extend(self.size() * [BlankCard()])
@@ -322,37 +311,33 @@ class Hand(list):
     return display_hand.strip()
 
 class InvalidMoveError(Exception):
+  '''Exception for when move is invalid when comparing moves'''
+
   pass
 
 @functools.total_ordering
 class Move(Hand):
+  '''Hand object that has added functionality of being a playable move by players'''
+
   HAND_TYPES = ['empty', 'scattered', 'one_card', 'pair', 'three_of_a_kind', 'four_of_a_kind', 'straight', 'flush', 'full_house', 'four_of_a_kind_plus_one', 'straight_flush']    
-  '''
-  Return the type of the move.
-  
-  Possible hand types:
-  'empty' -- move contains no cards
-  'scattered' -- cards do not consist of a move
-  'one_card' -- move is one card
-  'pair' -- move is two cards of the same value
-  'three_of_a_kind' -- move is three cards of the same value
-  'four_of_a_kind' -- move is four cards of the same value
-  'straight' -- move is five cards with values in ascending order, increasing by one
-  'flush' -- move is five cards with all the same suit
-  'full_house' -- move is five cards, consisting of a three-of-a-kind and a pair
-  'four_of_a_kind_plus_one' -- move is five cards, consisting of a four-of-a-kind and an additional card
-  'straight_flush' -- move is both a straight and a flush
-  '''
-
-  def __str__(self):
-    display_hand = ""
-    
-    for card in self:
-      display_hand += (card.__str__() + " ")
-
-    return display_hand
 
   def get_type(self):
+    '''
+    Return the type of the move.
+    
+    Possible hand types:
+    'empty' -- move contains no cards
+    'scattered' -- cards do not consist of a move
+    'one_card' -- move is one card
+    'pair' -- move is two cards of the same value
+    'three_of_a_kind' -- move is three cards of the same value
+    'four_of_a_kind' -- move is four cards of the same value
+    'straight' -- move is five cards with values in ascending order, increasing by one
+    'flush' -- move is five cards with all the same suit
+    'full_house' -- move is five cards, consisting of a three-of-a-kind and a pair
+    'four_of_a_kind_plus_one' -- move is five cards, consisting of a four-of-a-kind and an additional card
+    'straight_flush' -- move is both a straight and a flush
+    '''
     self.sort()
 
     if self.size() == 0:
@@ -424,6 +409,14 @@ class Move(Hand):
 
     self.get_type()
     self.hand_type_index = Move.HAND_TYPES.index(self.hand_type)
+
+  def __str__(self):
+    display_hand = ""
+    
+    for card in self:
+      display_hand += (card.__str__() + " ")
+
+    return display_hand
 
   def __eq__(self, other):
     if not isinstance(other, Move): return False
@@ -498,6 +491,8 @@ class Move(Hand):
       return self[0].suit['value'] < other[0].suit['value']
 
 def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
+  '''Return list of moves, that is customizable to be sorted within the hand type'''
+
   all_moves = {}
 
   for move in in_list:
@@ -506,14 +501,8 @@ def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
     else:
       all_moves[move.hand_type_index] = [move]
 
-  # print(all_moves)
-
   for move_type in all_moves:
     all_moves[move_type].sort(reverse=reverse_in_hand_type)
-
-  # for move in in_list:
-  #     print(move)
-  # print(all_moves)
 
   hand_types = list(all_moves.keys())
   hand_types.sort(reverse=reverse)
@@ -526,5 +515,7 @@ def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
   return return_list
 
 def hashable_to_card(hashable):
+  '''Converts hashable representation of card [see Card.to_hashable()] to its corresponding Card object'''
+
   params = hashable.split("#")
   return Card(int(params[1]), int(params[2]))

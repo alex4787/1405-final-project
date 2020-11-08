@@ -7,6 +7,8 @@ ui_width = 80
 box = ['┏', '┓', '┃', '━', '┗', '┛', '┣', '┫']
 
 def to_ordinal(number):
+  '''Converts number to ordinal representation as a string'''
+
   if 11 <= number <= 13 or number % 10 == 0 or number % 10 > 3:
     return str(number) + "th"
   elif number % 10 == 1:
@@ -26,6 +28,11 @@ def print_hand_type(str_in):
   print(" ".join(list_in))
 
 def print_moves(player, moves = 'default', is_moves = True):
+  '''
+  Print a list of moves or cards in a format that allows for player selection\n
+  By default, outputs a player's valid moves
+  '''
+
   counter = 1
   choice_max_length = 1
   max_choice = len(moves) + 1
@@ -62,6 +69,8 @@ def print_moves(player, moves = 'default', is_moves = True):
     print_ln_input(final_number.ljust(choice_max_length + 2) + " Pass")
 
 def print_title(text, length = ui_width):
+  '''Outputs a formatted title for a box'''
+
   os.system("clear")
   print_str = box[0]
   print_str += " "
@@ -73,31 +82,39 @@ def print_title(text, length = ui_width):
   print(print_str)
 
 def print_end(length = ui_width):
+  '''Outputs the bottom of a box'''
+
   print_str = box[4]
   print_str += (length - 2) * box[3]
   print_str += box[5]
 
   print(print_str)
 
-def print_subtitle(text, length = ui_width):
-  print_str = box[6]
-  print_str += " "
-  print_str += text.upper()
-  print_str += " "
-  print_str += (length - len(print_str) - 1) * box[3]
-  print_str += box[7]
+# UNUSED
+# def print_subtitle(text, length = ui_width):
+#   '''Outputs a formatted subtitle for the middle of a box'''
 
-  print(print_str)
+#   print_str = box[6]
+#   print_str += " "
+#   print_str += text.upper()
+#   print_str += " "
+#   print_str += (length - len(print_str) - 1) * box[3]
+#   print_str += box[7]
+
+#   print(print_str)
 
 def print_title_input(text, length = ui_width):
+  '''Outputs a formatted title for input purposes'''
+
   print_str = box[0]
   print_str += " "
   print_str += text.upper()
   
-
   print(print_str)
 
 def print_end_input(text, wait_for_enter = True):
+  '''Outputs an ending message and prompt after input has been received'''
+
   print(box[4], text, end="")
 
   if wait_for_enter:
@@ -110,9 +127,13 @@ def print_end_input(text, wait_for_enter = True):
     time.sleep(0.5)
 
 def print_ln_input(text, end='\n'):
+  '''Outputs text formatted for inputting purposes'''
+
   print("┃ " + text, end=end)
 
 def print_box(title, *text, length = ui_width):
+  '''Outputs a fully formatted box with a title and text inside'''
+
   print_title(title, length)
   
   for item in text:
@@ -133,6 +154,8 @@ def print_box(title, *text, length = ui_width):
   print_end(length)
 
 def print_ln(*objects, sep=' ', end='\n', length = ui_width):
+  '''Outputs one line of text within a box'''
+
   if len(objects) == 0: print(end=end)
 
   print_str = box[2]

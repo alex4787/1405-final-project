@@ -1,6 +1,8 @@
 from user_interface import print_ln_input
 
 def valid_input(input_str, checker_func, error_message = "Please enter a valid input."):
+  '''Input with data validation according to checker_func that outputs error message if invalid'''
+
   while True:
     try:
       return checker_func(input_ln(input_str))
@@ -9,6 +11,8 @@ def valid_input(input_str, checker_func, error_message = "Please enter a valid i
       print_ln_input(error_message)
 
 def valid_input_with_range(input_str, checker_func, low, high):
+  '''Input with data validation according to checker_func and specific number range that outputs error message if invalid'''
+
   within_range = False
   error_message = ("Please enter a number from " + str(low) + " to " + str(high) + ".")
 
@@ -21,6 +25,8 @@ def valid_input_with_range(input_str, checker_func, low, high):
       print_ln_input(error_message)
 
 def valid_input_with_values(input_str, *possible_values):
+  '''Input with data validation with a selection of valid values that outputs error message if invalid'''
+
   valid = False
   error_message = "Please enter one of the following: "
   values_str = ""
@@ -42,5 +48,7 @@ def valid_input_with_values(input_str, *possible_values):
       print_ln_input(error_message)
 
 def input_ln(input_str):
+  '''Return player input, but displayed in formatted manner'''
+  
   return input("┃ " + input_str)
     

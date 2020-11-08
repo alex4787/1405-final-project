@@ -16,6 +16,8 @@ num_players = None
 players = []
 
 def setup():
+  '''Setup the game by allowing user to specify the number of rounds, players, and their names and AI status'''
+
   global total_rounds, num_players, players
 
   players.clear()
@@ -45,6 +47,8 @@ def setup():
   ui.print_end_input("Setting up the game", False)
 
 def deal_to(*players):
+  '''Deals an equal number of cards to each player from a full deck of cards'''
+
   deck = ct.full_deck()[:]
   cards_left = len(deck)
   leftover = cards_left % len(players)
@@ -61,12 +65,16 @@ def deal_to(*players):
   return deck
 
 def get_lowest_card(remainder_deck, lowest_possible = Card(3, 0)):
+  '''Return the lowest card in the deck according to the cards leftover after dealing'''
+
   if lowest_possible in remainder_deck:
     return get_lowest_card(remainder_deck[:].remove(lowest_possible), lowest_possible.get_next())
   else:
     return lowest_possible
 
 def do_round(round_number):
+  '''Conducts one round of President'''
+
   remainder_deck = deal_to(*players)
   lowest_card = get_lowest_card(remainder_deck)
 
@@ -128,7 +136,6 @@ def do_round(round_number):
         ui.print_title_input("Options:")
       else:
         ui.print_ln("AI move complete.")
-        ui.print_ln("Your hand:", players[index].hand) # TESTING
         ui.print_end()
         ui.print_title_input("Move:")
 
@@ -199,9 +206,13 @@ def do_round(round_number):
   ui.print_end()
 
 def next_round(round_number):
+  '''Proceeds to next round (this may be expanded if time permits)'''
+
   input("> Press enter to continue to next round...")
 
 def get_finishing_roles():
+  '''Obtains finishing roles after each round according to the order in which each player finished'''
+
   global players
 
   players.sort()
@@ -222,6 +233,8 @@ def get_finishing_roles():
   # 1 2 3 4 5 6 7 p vp n n n vb b [0, 1, 2, 3]
 
 def do_trade():
+  '''Conducts trade between players according to number of players and each of their roles'''
+
   if num_players >= 4:
     ui.print_box("Trade", "Trade will occur between first the president and bum, and then the vice-president and vice-bum.")
   else:
@@ -241,6 +254,8 @@ def do_trade():
     trade_between(president, bum)
 
 def trade_between(president, bum):
+  '''Facilitates the actual trading mechanism between players/AI'''
+
   num_cards = 3 - president.finishing_record[-1]
 
   if isinstance(president, AI):
@@ -256,6 +271,8 @@ def trade_between(president, bum):
   bum.give_cards(president, *bum_cards)
 
 def finish_game():
+  '''Finishes the game and return true/false based on whether player wants to play again'''
+
   input("> Press enter to continue...")
 
   ui.print_box("End of Game", "Thank you for playing President! We hope you enjoyed.")
