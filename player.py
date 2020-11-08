@@ -1,9 +1,10 @@
 import card
 import functools
+import user_interface as ui
 
 @functools.total_ordering
 class Player():
-  FINISHING_ROLES = ['President', 'Vice-President', 'Neutral', 'Vice-Bum', 'Bum']
+  FINISHING_ROLES = ['President 👑', 'Vice-President', 'Neutral', 'Vice-Bum', 'Bum']
 
   def reset(self):
     '''Reset player hand and finished status.'''
@@ -19,30 +20,44 @@ class Player():
     
     other.hand.extend(cards)
 
-  def __get_move_parameters(self, previous_move = "*", lowest_card = None):
-    self.__valid_moves = self.hand.get_valid_moves(previous_move, lowest_card)
-    self.__can_pass = not ((lowest_card != None) or (previous_move == "*"))
-    self.__last_choice = len(self.__valid_moves)
-    
-    if self.__can_pass: self.__last_choice += 1
+  def _get_move_parameters(self, previous_move = "*", lowest_card = None):
+    self._valid_moves = self.hand.get_valid_moves(previous_move, lowest_card)
 
-  def __do_move(self, move_choice):
-    if move_choice == self.__last_choice and self.__can_pass:
+    self._can_pass = not ((lowest_card != None) or (previous_move == "*"))
+    
+    try:
+      self._last_choice = len(self._valid_moves)
+    except TypeError:
+      self._last_choice = 1
+    
+    if self._can_pass: self._last_choice += 1
+
+
+  def print_from_valid_moves(self, index):
+    print(self._valid_moves[index])
+
+  def _get_move(self, move_choice):
+    if move_choice == self._last_choice and self._can_pass:
       return "*"
     else:
-      move = self.__valid_moves[move_choice - 1]
-      for card in self.hand:
-        if card in move:
-          self.hand.remove(card)
+      move = self._valid_moves[move_choice - 1]
+      
+      self.hand.subtract(move)
       
       if len(self.hand) == 0:
         self.finished = True
 
       return move
 
-  def test_move(self, previous_move = "*", lowest_card = None):
-    self.__get_move_parameters(previous_move, lowest_card)
-    self.__do_move(1)
+  def test_move(self, previous_move = "*", lowest_card = None, move_choice = 1):
+    self._get_move_parameters(previous_move, lowest_card)
+    return self._get_move(move_choice)
+
+  def do_move(self, previous_move = "*", lowest_card = None):
+    return self.test_move(previous_move, lowest_card)
+
+  def tester(self):
+    self._get_move_parameters()
 
   def __init__(self, name):
     self.hand = card.Hand()
@@ -53,3 +68,6 @@ class Player():
 
   def __lt__(self, other):
     return self.finishing_record[-1] < other.finishing_record[-1]
+
+  def __str__(self):
+    return self.name

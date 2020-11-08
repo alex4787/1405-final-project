@@ -50,6 +50,9 @@ class Card:
     else:
       return Card(self.value, self.suit['value'] + 1)
 
+  def to_hashable(self):
+    return "C#" + str(self.value) + "#" + str(self.suit['value'])
+
   def __init__(self, number_value, suit_value):
     self.suit = Card.SUITS[suit_value]
     self.set_display_value(number_value)
@@ -63,8 +66,17 @@ class Card:
     return self.value == other.value and self.suit['value'] == other.suit['value']
   
   def __lt__(self, other):
-    if not isinstance(other, Card): raise "Cannot compare card with non-card object."
+    if not isinstance(other, Card): raise TypeError("Cannot compare card with non-card object.")
     return self.value < other.value or (self.value == other.value and self.suit['value'] < other.suit['value'])
+
+class BlankCard(Card):
+  BLUE = '\033[37;44m'
+
+  def __init__(self):
+    self.display_value = BlankCard.BLUE + "[]" + '\033[m'
+
+  def __str__(self):
+    return self.display_value
 
 @functools.total_ordering
 class Hand(list):
@@ -73,24 +85,31 @@ class Hand(list):
   If no argument is given, the constructor creates a new empty hand. The argument must consist of cards and be iterable if specified.
   '''
 
-  HAND_TYPES = ['empty', 'scattered', 'one_card', 'pair', 'three_of_a_kind', 'four_of_a_kind', 'straight', 'flush', 'full_house', 'four_of_a_kind_plus_one', 'straight_flush']    
-
-  def get_valid_moves(self, previous_move = "*", lowest_card = None):
+  def get_valid_moves(self, previous_move = "*", lowest_card = None, option = 'default'):
     '''
     Return all valid moves of a hand as an array of moves.
 
-    If no arguments is given, the function returns all valid moves with no previous move (i.e. pass or start of game).
-    If previous move is specified, it must be a move, and only returns valid moves according to the previous move.
-    If lowest card is specified, it must be a card, and only returns valid moves containing the lowest card.
+    If no arguments is given, the function returns all valid moves with no previous move (i.e. pass or start of game).\n
+    If previous move is specified, it must be a move, and only returns valid moves according to the previous move.\n
+    If lowest card is specified, it must be a card, and only returns valid moves containing the lowest card.\n
+    The option argument has three possible values:
+    'default' -- return all valid moves
+    'highest' -- return only the highest move for each number of cards (1, 2, 3, 4, 5)
+    'lowest' -- return only the lowest move for each number of cards
     Return None if there are no valid moves in the hand.
     '''
+
+    # print('gvm')
 
     self.sort()
     # print("LOWEST:", end=" ")
     # print(lowest_card)
+    # print(option)
 
     has_previous_move = isinstance(previous_move, Move)
     first_move = (lowest_card != None)
+
+    if first_move: option = 'default'
 
     # print(has_previous_move)
     # print(first_move)
@@ -98,71 +117,45 @@ class Hand(list):
     if has_previous_move and self.size() < previous_move.size():
       return []
     elif has_previous_move and self.size() == previous_move.size():
-      self_move = Move(iter(self))
-      is_move = True
-      if self_move.hand_type == 'empty' or self_move.hand_type == 'scattered':
-        is_move = False
-
-      if is_move:
-        if self_move > previous_move:
-          return [self_move]
-        else:
-          return []
+      return self.__get_same_sized_move(previous_move)
 
     all_valid_moves = []
-    self_value_frequencies = {}
-    self_suit_frequencies = {}
-    for card in self:
-      if card.suit['value'] in self_suit_frequencies:
-        self_suit_frequencies[card.suit['value']].append(card)
-      else:
-        self_suit_frequencies[card.suit['value']] = [card]
+    self_value_frequencies = self.__value_frequencies()
+    
+    get_moves = {
+      self.__get_one_cards: {'range': 1, 'args': [all_valid_moves, option]},
+      self.__get_two_to_four_cards: {'range': [2, 4], 'args': [all_valid_moves, option, self_value_frequencies, has_previous_move, previous_move]},
+      self.__get_five_cards: {'range': 5, 'args': [all_valid_moves, option]}
+    }
+
+    for func in get_moves:
+      within_range = True
       
-      if card.value in self_value_frequencies:
-        self_value_frequencies[card.value].append(card)
-      else:
-        self_value_frequencies[card.value] = [card]
-    
-    if has_previous_move: previous_move_size = previous_move.size()
-
-    if not has_previous_move or previous_move_size == 1:
-      for card in self:
-        all_valid_moves.append(Move(iter([card])))
-    
-    if not has_previous_move or 2 <= previous_move_size <= 4:
       if has_previous_move:
-        move_sizes = [previous_move_size]
-      else:
-        move_sizes = [2, 3, 4]
+        # print("hpm")
+        if isinstance(get_moves[func]['range'], list):
+          within_range = get_moves[func]['range'][0] <= previous_move.size() <= get_moves[func]['range'][1]
+        else:
+          within_range = (previous_move.size() == get_moves[func]['range'])
+        
+        if not within_range:
+          continue
 
-      for move_size in move_sizes:
-        for value in self_value_frequencies:
-          if len(self_value_frequencies[value]) >= move_size:
-            combinations = itertools.combinations(self_value_frequencies[value], move_size)
-            for move in combinations:
-              all_valid_moves.append(Move(move))
+      func(*get_moves[func]['args'])
 
-    if not has_previous_move or previous_move_size == 5:
-      combinations = itertools.combinations(self, 5)
+      # for move in all_valid_moves:
+      #   print(move)
 
-      for combo in combinations:
-        move = Move(combo)
-        if move.hand_type != 'scattered':
-          all_valid_moves.append(move)
+      if has_previous_move: # do return immediately with sort
+        return self.__get_moves_with_previous(all_valid_moves, previous_move)
 
-    number_moves = len(all_valid_moves)
     return_moves = []
 
-    if has_previous_move:
-      for move_counter in range(number_moves):
-        if all_valid_moves[move_counter] > previous_move:
-          # print(str(all_valid_moves[move_counter].__class__) + " " + str(previous_move.__class__))
-          # print(str(Hand.HAND_TYPES.index(all_valid_moves[move_counter].hand_type)) + " " + str(Hand.HAND_TYPES.index(previous_move.hand_type)))
-          # print(move_counter)
-          return_moves.append(all_valid_moves[move_counter])
-      return sorted(return_moves)
-    elif first_move:
-      for move_counter in range(number_moves):
+    # for move in all_valid_moves:
+    #   print(move)
+
+    if first_move:
+      for move_counter in range(len(all_valid_moves)):
         if lowest_card in all_valid_moves[move_counter]:
           return_moves.append(all_valid_moves[move_counter])
     else:
@@ -174,9 +167,151 @@ class Hand(list):
     # print(return_moves)
     return sorted_by_hand_type(return_moves)
 
+  def __get_same_sized_move(self, previous_move):
+    self_move = Move(self)
+    is_move = True
+    if self_move.hand_type == 'empty' or self_move.hand_type == 'scattered':
+      is_move = False
+
+    if is_move and self_move > previous_move:
+      return [self_move]
+    
+    return []
+
+  def __value_frequencies(self):
+    self_value_frequencies = {}
+
+    for card in self:  
+      if card.value in self_value_frequencies:
+        self_value_frequencies[card.value].append(card)
+      else:
+        self_value_frequencies[card.value] = [card]
+
+    return self_value_frequencies
+
+  def __get_one_cards(self, moves, option):
+    if option == 'default':
+      for card in self:
+        moves.append(Move([card]))
+    elif option == 'highest':
+      moves.append(Move([self[-1]]))
+    elif option == 'lowest':
+      moves.append(Move([self[0]]))
+
+  def __get_two_to_four_cards(self, moves, option, value_frequencies, has_previous_move, previous_move):
+    if has_previous_move:
+      move_sizes = [previous_move.size()]
+    else:
+      move_sizes = [2, 3, 4]
+
+    move_type_dict = {}
+
+    for move_size in move_sizes:
+      for value in value_frequencies:
+        if len(value_frequencies[value]) < move_size: continue
+
+        combinations = itertools.combinations(value_frequencies[value], move_size)
+
+        for move in combinations:
+          this_move = Move(move)
+
+          if option == 'default':
+            moves.append(this_move)
+          elif this_move.size() not in move_type_dict:
+            move_type_dict[this_move.size()] = this_move
+          elif (option == 'highest' and this_move > move_type_dict[this_move.size()]) or (option == 'lowest' and this_move < move_type_dict[this_move.size()]):
+            move_type_dict[this_move.size()] = this_move
+
+    if option != 'default':
+      for move_type in move_type_dict:
+        moves.append(move_type_dict[move_type])
+
+  def __get_five_cards(self, moves, option):
+    combinations = itertools.combinations(self, 5)
+
+    # print('5 cards')
+    # print(option)
+
+    move_type_dict = {}
+
+    for combo in combinations:
+      move = Move(combo)
+      if move.hand_type != 'scattered':
+        # print('gen', move)
+        if option == 'default':
+          moves.append(move)
+        elif move.hand_type not in move_type_dict:
+          move_type_dict[move.hand_type] = move
+          # print('not in', move)
+        elif (option == 'highest' and move > move_type_dict[move.hand_type]) or (option == 'lowest' and move < move_type_dict[move.hand_type]):
+          move_type_dict[move.hand_type] = move
+          # print('high', move)
+
+    if option != 'default':
+      for move_type in move_type_dict:
+        moves.append(move_type_dict[move_type])
+
+  def __get_moves_with_previous(self, moves, previous_move):
+    return_moves = []
+
+    for move_counter in range(len(moves)):
+      if moves[move_counter] > previous_move:
+        # print(str(all_valid_moves[move_counter].__class__) + " " + str(previous_move.__class__))
+        # print(str(Move.HAND_TYPES.index(all_valid_moves[move_counter].hand_type)) + " " + str(Move.HAND_TYPES.index(previous_move.hand_type)))
+        # print(move_counter)
+        return_moves.append(moves[move_counter])
+
+    return sorted(return_moves)
+
   def size(self):
     '''Return the size of the hand.'''
     return len(self)
+
+  def subtract(self, other, in_place = True):
+    other_cards = {}
+
+    return_hand = self
+
+    if not in_place:
+      return_hand = Hand()
+
+      for card in self:
+        return_hand.append(card)
+
+    if isinstance(other, Card):
+      return_hand.remove(other)
+      return return_hand
+    elif not isinstance(other, list):
+      raise TypeError("Cannot subtract non-list/hand object from hand")
+
+    for element in other:
+      if isinstance(element, list):
+        return_hand.subtract(element)
+      elif not isinstance(element, Card):
+        raise TypeError("Cannot remove non-card objects")
+      elif element.to_hashable() not in other_cards:
+        other_cards[element.to_hashable()] = True
+
+    # print(other_cards)
+
+    for other_card in other_cards:
+      return_hand.remove(hashable_to_card(other_card))
+
+    # for card in return_hand:
+    #   print(card.to_hashable())
+    #   if card.to_hashable() in other_cards:
+    #     print(card)
+    #     return_hand.remove(card)
+
+    if not in_place:
+      return return_hand
+
+  def to_blank_hand(self):
+    return_hand = Hand()
+
+    return_hand.extend(self.size() * [BlankCard()])
+
+    return return_hand
 
   def __str__(self):
     display_hand = ""
@@ -184,10 +319,31 @@ class Hand(list):
     for card in self:
       display_hand += (card.__str__() + " ")
 
-    return display_hand
+    return display_hand.strip()
+
+class InvalidMoveError(Exception):
+  pass
 
 @functools.total_ordering
 class Move(Hand):
+  HAND_TYPES = ['empty', 'scattered', 'one_card', 'pair', 'three_of_a_kind', 'four_of_a_kind', 'straight', 'flush', 'full_house', 'four_of_a_kind_plus_one', 'straight_flush']    
+  '''
+  Return the type of the move.
+  
+  Possible hand types:
+  'empty' -- move contains no cards
+  'scattered' -- cards do not consist of a move
+  'one_card' -- move is one card
+  'pair' -- move is two cards of the same value
+  'three_of_a_kind' -- move is three cards of the same value
+  'four_of_a_kind' -- move is four cards of the same value
+  'straight' -- move is five cards with values in ascending order, increasing by one
+  'flush' -- move is five cards with all the same suit
+  'full_house' -- move is five cards, consisting of a three-of-a-kind and a pair
+  'four_of_a_kind_plus_one' -- move is five cards, consisting of a four-of-a-kind and an additional card
+  'straight_flush' -- move is both a straight and a flush
+  '''
+
   def __str__(self):
     display_hand = ""
     
@@ -197,28 +353,10 @@ class Move(Hand):
     return display_hand
 
   def get_type(self):
-    HAND_TYPES = ['empty', 'scattered', 'one_card', 'pair', 'three_of_a_kind', 'four_of_a_kind', 'straight', 'flush', 'full_house', 'four_of_a_kind_plus_one', 'straight_flush']    
-
-    '''
-    Return the type of the move.
-    
-    Possible hand types:
-    'empty' -- move contains no cards
-    'scattered' -- cards do not consist of a move
-    'one_card' -- move is one card
-    'pair' -- move is two cards of the same value
-    'three_of_a_kind' -- move is three cards of the same value
-    'four_of_a_kind' -- move is four cards of the same value
-    'straight' -- move is five cards with values in ascending order, increasing by one
-    'flush' -- move is five cards with all the same suit
-    'full_house' -- move is five cards, consisting of a three-of-a-kind and a pair
-    'four_of_a_kind_plus_one' -- move is five cards, consisting of a four-of-a-kind and an additional card
-    'straight_flush' -- move is both a straight and a flush
-    '''
     self.sort()
 
     if self.size() == 0:
-      self.hand_type = Hand.HAND_TYPES[0]
+      self.hand_type = Move.HAND_TYPES[0]
     elif self.size() <= 4:
       first_card = self[0]
       all_same = True
@@ -229,9 +367,9 @@ class Move(Hand):
           break
 
       if all_same:
-        self.hand_type = Hand.HAND_TYPES[self.size() + 1]  # One card/pair/three/four
+        self.hand_type = Move.HAND_TYPES[self.size() + 1]  # One card/pair/three/four
       else:
-        self.hand_type = Hand.HAND_TYPES[1]            # Scattered
+        self.hand_type = Move.HAND_TYPES[1]            # Scattered
 
     elif self.size() == 5:
       first_card = self[0]
@@ -262,32 +400,36 @@ class Move(Hand):
 
       if is_straight:
         if is_flush:
-          self.hand_type = Hand.HAND_TYPES[10]
+          self.hand_type = Move.HAND_TYPES[10]
         else:
-          self.hand_type = Hand.HAND_TYPES[6]
+          self.hand_type = Move.HAND_TYPES[6]
       elif is_flush:
-        self.hand_type = Hand.HAND_TYPES[7]
+        self.hand_type = Move.HAND_TYPES[7]
       elif len(repeat_value_counter) == 2:
         if 1 in repeat_value_counter and 4 in repeat_value_counter:
-          self.hand_type = Hand.HAND_TYPES[9]
+          self.hand_type = Move.HAND_TYPES[9]
         else:
-          self.hand_type = Hand.HAND_TYPES[8]
+          self.hand_type = Move.HAND_TYPES[8]
       else:
-        self.hand_type = Hand.HAND_TYPES[1]
+        self.hand_type = Move.HAND_TYPES[1]
 
     else:
-      self.hand_type = Hand.HAND_TYPES[1]
+      self.hand_type = Move.HAND_TYPES[1]
 
   def __init__(self, iterable = ()):
-    super().__init__(iterable)
+    try:
+      super().__init__(iterable)
+    except TypeError:
+      super().__init__(*iterable)
+
     self.get_type()
-    self.hand_type_index = Hand.HAND_TYPES.index(self.hand_type)
+    self.hand_type_index = Move.HAND_TYPES.index(self.hand_type)
 
   def __eq__(self, other):
     if not isinstance(other, Move): return False
 
     if self.hand_type == 'empty' or self.hand_type == 'scattered' or other.hand_type == 'empty' or other.hand_type == 'scattered':
-      raise "Cannot compare empty/scattered moves."
+      raise InvalidMoveError("Cannot compare empty/scattered moves.")
 
     if self.size() != other.size(): return False
 
@@ -301,10 +443,10 @@ class Move(Hand):
     return not self.__lt__(other) and not self.__eq__(other)
 
   def __lt__(self, other):
-    if not isinstance(other, Move): raise "Cannot compare card with non-move object."
+    if not isinstance(other, Move): raise TypeError("Cannot compare card with non-move object.")
 
     if self.hand_type == 'empty' or self.hand_type == 'scattered' or other.hand_type == 'empty' or other.hand_type == 'scattered':
-      raise "Cannot compare empty/scattered moves."
+      raise InvalidMoveError("Cannot compare empty/scattered moves.")
 
     if self.hand_type_index != other.hand_type_index:
       return self.hand_type_index < other.hand_type_index
@@ -338,7 +480,7 @@ class Move(Hand):
         next_max_other = other.pop(self.size() - 2)
 
         if next_max_self.value == next_max_other.value:
-          return max_self.suit['value'] < max_self.suit['value']
+          return max_self.suit['value'] < max_other.suit['value']
         else:
           max_self = next_max_self
           max_other = next_max_other
@@ -346,7 +488,7 @@ class Move(Hand):
       if max_self.value != max_other.value: 
         return max_self < max_other
 
-      return max_self.suit['value'] < max_self.suit['value']
+      return max_self.suit['value'] < max_other.suit['value']
     
     else:
       for card_counter in range(self.size() - 1, -1, -1):
@@ -354,8 +496,6 @@ class Move(Hand):
           return self[card_counter] < other[card_counter]
 
       return self[0].suit['value'] < other[0].suit['value']
-
-deck = Hand()
 
 def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
   all_moves = {}
@@ -385,13 +525,6 @@ def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
 
   return return_list
 
-def full_deck():
-  '''Return the full deck of cards.'''
-  global deck
-
-  if deck == []:
-    for suit in range(4):
-      for value in range(1, 14):
-        deck.append(Card(value, suit))
-
-  return deck
+def hashable_to_card(hashable):
+  params = hashable.split("#")
+  return Card(int(params[1]), int(params[2]))

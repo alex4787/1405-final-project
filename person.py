@@ -6,10 +6,7 @@ class Person(Player):
   def choose_cards(self, number_of_cards = 1):
     counter = 1
 
-    for card in self.hand:
-      print("[" + str(counter) + "]", end=" ")
-      print(card)
-      counter += 1
+    ui.print_moves(self, self.hand, False)
 
     card_choices = []
     get_choices = True
@@ -22,19 +19,27 @@ class Person(Player):
 
       for card_choice in card_choices:
         if card_choices.count(card_choice) != 1: 
-          print("Cards must be different!")
+          ui.print_ln_input("Cards must be different!")
           get_choices = True
           card_choices.clear()
           break
+
+    if number_of_cards == 1:
+      ui.print_end_input("Giving " + str(self.hand[card_choices[0] - 1]) , False)
+    else:
+      ui.print_end_input("Giving " + str(self.hand[card_choices[0] - 1]) + " and " + str(self.hand[card_choices[1] - 1]), False)
 
     return list(map(lambda card_choice: self.hand[card_choice - 1], card_choices))
 
   def choose_move(self, previous_move = "*", lowest_card = None):
     '''Allow player to choose move out of valid moves or pass.'''
 
-    self.__get_move_parameters(previous_move, lowest_card)
+    self._get_move_parameters(previous_move, lowest_card)
 
     ui.print_moves(self)
-    
-    move_choice = user_in.valid_input_with_range("Move #: ", int, 1, self.__last_choice)
-    self.__do_move(move_choice)
+
+    move_choice = user_in.valid_input_with_range("Move #: ", int, 1, self._last_choice)
+    return self._get_move(move_choice)
+
+  def do_move(self, previous_move = "*", lowest_card = None):
+    return self.choose_move(previous_move, lowest_card)
