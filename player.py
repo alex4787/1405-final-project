@@ -16,6 +16,7 @@ class Player():
   def give_cards(self, other, *cards):
     '''Gives specified cards to other player'''
 
+    # Loops through own cards and removes those which are specified in argument
     for card in cards:
       if card not in self.hand:
         raise card + " Card not in hand!"
@@ -27,6 +28,7 @@ class Player():
   def _get_move_parameters(self, previous_move = "*", lowest_card = None):
     '''Sets parameters to enable move selection'''
 
+    # Sets own valid moves and ability to pass, so it can be accessed afterwards without re-evaluation
     self._valid_moves = self.hand.get_valid_moves(previous_move, lowest_card)
     self._can_pass = not ((lowest_card != None) or (previous_move == "*"))
     
@@ -46,14 +48,14 @@ class Player():
     '''Performs and returns move specified'''
 
     if move_choice == self._last_choice and self._can_pass:
-      return "*"
+      return "*"  # Return pass
     else:
-      move = self._valid_moves[move_choice - 1]
+      move = self._valid_moves[move_choice - 1]   # Gets move based on specified index
       
-      self.hand.subtract(move)
+      self.hand.subtract(move)  # Removes move from hand
       
       if len(self.hand) == 0:
-        self.finished = True
+        self.finished = True    # Sets attribute finished to true if no more cards remain in hand
 
       return move
 

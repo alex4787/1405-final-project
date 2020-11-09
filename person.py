@@ -10,6 +10,7 @@ class Person(Player):
 
     counter = 1
 
+    # Prints all possible moves for player to see before determining their choice
     ui.print_moves(self, self.hand, False)
 
     card_choices = []
@@ -17,22 +18,27 @@ class Person(Player):
 
     while get_choices:
       for card_number in range(1, number_of_cards + 1):
+        # Adds player choice (in the form of choice number) to list of card choices
         card_choices.append(user_in.valid_input_with_range(("Card " + str(card_number) + ": "), int, 1, len(self.hand)))
 
       get_choices = False
 
       for card_choice in card_choices:
+        # Ensures that all selected cards are unique, and not the same
+        # Otherwise, it repeats the process until valid cards are chosen
         if card_choices.count(card_choice) != 1: 
           ui.print_ln_input("Cards must be different!")
           get_choices = True
           card_choices.clear()
           break
 
+    # Outputs to user which cards have been chosen to give
     if number_of_cards == 1:
       ui.print_end_input("Giving " + str(self.hand[card_choices[0] - 1]) , False)
     else:
       ui.print_end_input("Giving " + str(self.hand[card_choices[0] - 1]) + " and " + str(self.hand[card_choices[1] - 1]), False)
 
+    # Returns a list of cards according to the choice numbers as indices in the player's hand within the card_choices list
     return list(map(lambda card_choice: self.hand[card_choice - 1], card_choices))
 
   def choose_move(self, previous_move = "*", lowest_card = None):

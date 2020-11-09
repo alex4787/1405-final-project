@@ -251,7 +251,7 @@ class Hand(list):
         # print(move_counter)
         return_moves.append(moves[move_counter])
 
-    return sorted(return_moves)
+    return merge_sort(return_moves)
 
   def size(self):
     '''Return the size of the hand.'''
@@ -502,10 +502,10 @@ def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
       all_moves[move.hand_type_index] = [move]
 
   for move_type in all_moves:
-    all_moves[move_type].sort(reverse=reverse_in_hand_type)
+    all_moves[move_type] = merge_sort(all_moves[move_type], reverse_in_hand_type)
 
   hand_types = list(all_moves.keys())
-  hand_types.sort(reverse=reverse)
+  hand_types = merge_sort(hand_types, reverse)
 
   return_list = []
 
@@ -513,6 +513,45 @@ def sorted_by_hand_type(in_list, reverse=True, reverse_in_hand_type=False):
     return_list.extend(all_moves[hand_type])
 
   return return_list
+
+def merge(lst1, lst2, reverse = False):
+  i = 0
+  j = 0
+  merged = []
+  
+  while len(merged) < len(lst1) + len(lst2):
+    if i == len(lst1):
+      merged.extend(lst2[j:])
+      break
+    elif j == len(lst2):
+      merged.extend(lst1[i:])
+      break
+    elif reverse:
+      if lst1[i] > lst2[j]:
+        merged.append(lst1[i])
+        i += 1
+      else:
+        merged.append(lst2[j])
+        j += 1
+    else:
+      if lst1[i] < lst2[j]:
+        merged.append(lst1[i])
+        i += 1
+      else:
+        merged.append(lst2[j])
+        j += 1
+      
+  return merged
+      
+
+def merge_sort(lst, reverse = False):
+  if len(lst) <= 1:
+    return lst
+  
+  left = merge_sort(lst[:len(lst)//2], reverse)
+  right = merge_sort(lst[len(lst)//2:], reverse)
+  
+  return merge(left, right, reverse)
 
 def hashable_to_card(hashable):
   '''Converts hashable representation of card [see Card.to_hashable()] to its corresponding Card object'''
